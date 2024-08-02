@@ -9,11 +9,12 @@ import org.springframework.stereotype.Component;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.EthGetTransactionReceipt;
 import org.web3j.protocol.core.methods.response.Transaction;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.http.HttpService;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.*;
 
 @Component
@@ -21,49 +22,35 @@ public class ScannerBot {
     private  DateTimeFormatter formatter;
 
     private final Web3j web3j;
-    private final Disposable disposableSubPendingTxs;
     private final Disposable disposableSubSuccessTxs;
+
+    List<TransactionDetailsDTO> transactionDetailsDTOList = Collections.synchronizedList(new ArrayList<>());
 
 
     public ScannerBot(RPCProvider rpcProvider) {
        initDateTimeFormatter();
 
         web3j = Web3j.build(new HttpService(rpcProvider.getALCHEMY_URL()));
-
-        this.disposableSubPendingTxs = startDisposablePendingTxSubscriber();
         this.disposableSubSuccessTxs = startDisposableSuccessTxSubscriber();
 
     }
 
 
-    /** !IMPORTANT: We try to find pending transactions.
-     * The pending transactions are not common between nodes but each node has a pool of different pending transactions.
-     * Each node "gossips" (or communicates) its pending transactions to other nodes, but they are not completely synced in real time.
-     * Also, the submission time of a pending transaction is not known or stored on the blockchain,we can only know when WE have
-     * discovered said transaction but not how long it has been pending.
-     * @return
-     */
-    private @NotNull Disposable startDisposablePendingTxSubscriber() {
-        final Disposable disposableSubscription;
-        disposableSubscription = startDisposableTxSubscriber(ETransactionType.TOKEN_CREATION,ETransactionStatus.PENDING);
-        return disposableSubscription;
-    }
-
     private @NotNull Disposable startDisposableSuccessTxSubscriber() {
         final Disposable disposableSubscription;
-        disposableSubscription = startDisposableTxSubscriber(ETransactionType.TOKEN_CREATION,ETransactionStatus.SUCCESS);
+        disposableSubscription = startDisposableTxSubscriber(ETransactionType.TOKEN_CREATION);
         return disposableSubscription;
     }
 
 
 
-    private @NotNull Disposable startDisposableTxSubscriber(ETransactionType desiredTransactionType , ETransactionStatus desiredTransactionStatus) {
+    private @NotNull Disposable startDisposableTxSubscriber(ETransactionType desiredTransactionType) {
         final Disposable disposableSubscription;
 
-        Flowable<Transaction> transactionFlowable = ETransactionStatus.PENDING == desiredTransactionStatus ?
-                web3j.pendingTransactionFlowable() : web3j.transactionFlowable();
+        Flowable<Transaction> transactionFlowable = web3j.transactionFlowable();
 
-        // Subscribe to pending transactions with retry logic and error handling
+
+        // Subscribe to transactions with retry logic and error handling
         disposableSubscription = transactionFlowable
                 .retryWhen(errors ->
                         errors
@@ -77,8 +64,8 @@ public class ScannerBot {
                 .flatMap(transaction ->
                         Flowable.fromFuture(web3j.ethGetTransactionReceipt(transaction.getHash()).sendAsync())
                                 .map(EthGetTransactionReceipt::getTransactionReceipt)
-                                .filter(tranReceiptOptional -> transactionFiltering(desiredTransactionType, desiredTransactionStatus, tranReceiptOptional, transaction)) //only mined transactions have a TransactionReceipt, so Empty Optional<TransactionReceipt>  means it's pending still
-                                .map(transactionReceipt -> transaction)
+                                .filter(tranReceiptOptional -> Utils.isERC20TokenCreation(transaction.getInput()))
+                                .map(transactionReceipt -> new TransactionDetailsDTO(transaction, transactionReceipt.get()))
                                 .timeout(5, TimeUnit.SECONDS) // Timeout for each transactionReceipt request
                                 .onErrorResumeNext(error -> {
                                     if (error instanceof TimeoutException) {
@@ -90,33 +77,15 @@ public class ScannerBot {
                                 })
                 )
                 .sequential()
-                .subscribe(transaction -> {
-                    System.out.println(desiredTransactionStatus.getMessage() + " discovered at: "  +  LocalDateTime.now().format(formatter) + " " + transaction.getHash());
+                .subscribe(transactionDetailsDTO -> {
+                    transactionDetailsDTOList.add(transactionDetailsDTO);
+
+                    System.out.println( "New token discovered at: "  +  LocalDateTime.now().format(formatter) + " " + transactionDetailsDTO.getTransaction().getHash());
                 }, throwable -> {
-                    System.err.println("Error in " + desiredTransactionStatus.getMessage() + " Flowable subscription: " + throwable.getMessage());
+                    System.err.println("Error in Flowable subscription: " + throwable.getMessage());
                     throwable.printStackTrace();
                 });
         return disposableSubscription;
-    }
-
-    private boolean transactionFiltering(ETransactionType desiredTransactionType, ETransactionStatus desiredTransactionStatus, Optional<TransactionReceipt> transactionReceipt, Transaction currentTransaction) throws UnknownTransactionStatusException {
-        if(ETransactionStatus.PENDING == desiredTransactionStatus){
-            return switch (desiredTransactionType) {
-                //only mined transactions have a TransactionReceipt, so Empty Optional<TransactionReceipt> means it's still pending
-                // (what our connected node initially sees as pending is not guaranteed to be not mined yet by someone. Only mined transactions are guaranteed)
-                case TOKEN_CREATION -> Utils.isERC20TokenCreation(currentTransaction.getInput()) && transactionReceipt.isEmpty();
-                case ADD_LIQUIDITY -> true; //not implemented yet
-                default -> true; //when no desiredTransactionType is defined, allow all
-            };
-        }
-        else if(ETransactionStatus.SUCCESS == desiredTransactionStatus){
-            return switch (desiredTransactionType) {
-                case TOKEN_CREATION -> Utils.isERC20TokenCreation(currentTransaction.getInput());
-                case ADD_LIQUIDITY -> true; //not implemented yet
-                default -> true; //when no desiredTransactionType is defined, allow all
-            };
-        }
-        throw new UnknownTransactionStatusException("Unhandled Transaction Status: " + desiredTransactionStatus);
     }
 
 
@@ -135,7 +104,6 @@ public class ScannerBot {
 
     @PreDestroy
     public void cleanup() {
-        this.disposableSubPendingTxs.dispose();
         this.disposableSubSuccessTxs.dispose();
         this.web3j.shutdown();
     }

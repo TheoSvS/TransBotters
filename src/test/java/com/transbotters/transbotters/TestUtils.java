@@ -14,4 +14,12 @@ public class TestUtils {
     void testIsERC20Creation(){
         Assertions.assertTrue(Utils.isERC20TokenCreation(inputData));
     }
+
+
+    @Test
+    void testSecurit(){
+        Utils.getSecurityResponse("0x26dfeda7bc43df7af3627f71e4b4fd27ba464a98");
+    }
+
+
 }
