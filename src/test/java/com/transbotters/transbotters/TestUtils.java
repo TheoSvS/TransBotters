@@ -17,7 +17,7 @@ public class TestUtils {
 
 
     @Test
-    void testSecurit(){
+    void testSecurity(){
         Utils.getSecurityResponse("0x26dfeda7bc43df7af3627f71e4b4fd27ba464a98");
     }
 

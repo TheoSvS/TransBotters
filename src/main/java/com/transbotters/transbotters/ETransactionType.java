@@ -5,5 +5,7 @@ package com.transbotters.transbotters;
  */
 public enum ETransactionType {
     TOKEN_CREATION,
-    ADD_LIQUIDITY;
+    ADD_LIQUIDITY,
+    TOKEN_BOUGHT, //TRANSFER method
+    REMOVE_LIQUIDITY;
 }
