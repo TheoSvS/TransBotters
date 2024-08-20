@@ -33,7 +33,7 @@ public class ScannerBot{
     Map<String, TransactionDetailsDTO> transactionDetailsMap = Collections.synchronizedMap(new HashMap<>());
 
     @PostConstruct
-    public void  StartScannerBot() {
+    public void  startScannerBot() {
         this.disposableSubSuccessTxs = startDisposableSuccessTxSubscriber();
     }
 
@@ -83,7 +83,7 @@ public class ScannerBot{
                     this.handleTransactionByType(transactionDetailsDTO);
                 }, throwable -> {
                     System.err.println("Error in Flowable subscription: " + throwable.getMessage());
-                    throwable.printStackTrace();
+                    log.error(throwable.getMessage());
                 });
     }
 
@@ -140,9 +140,9 @@ public class ScannerBot{
 //        } else {
         if (Objects.nonNull(createdTokenAddress)) {
             transactionDetailsMap.put(createdTokenAddress, transactionDetailsDTO);
-            log.info("Token creation discovered with transaction https://etherscan.io/tx/" + transactionDetailsDTO.getTransaction().getHash());
+            log.info("Token creation discovered with transaction " + web3Provider.getChainExplorerURL() + "/tx/" + transactionDetailsDTO.getTransaction().getHash());
             //TODO Need to distinguish if token address or contact address
-            log.info("https://etherscan.io/token/" + createdTokenAddress);
+            log.info(web3Provider.getChainExplorerURL() + "/token/" + createdTokenAddress);
         }
         //}
     }

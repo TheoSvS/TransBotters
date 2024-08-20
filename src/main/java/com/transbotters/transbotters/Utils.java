@@ -11,6 +11,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -116,6 +117,11 @@ public class Utils {
             }
         }
         return false;
+    }
+
+    public static boolean findEmptyProperties(String... properties){
+        Arrays.stream(properties).anyMatch(property-> property==null || property.isBlank());
+        return Arrays.stream(properties).anyMatch(property-> property==null || property.isBlank());
     }
 
     public static boolean isERC20TokenCreation(String inputData) {
