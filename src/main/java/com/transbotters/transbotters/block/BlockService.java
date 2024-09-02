@@ -5,7 +5,6 @@ import com.transbotters.transbotters.Utils;
 import com.transbotters.transbotters.web3.Web3Provider;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.methods.response.EthBlock;
@@ -23,10 +22,13 @@ import java.util.*;
 @Slf4j
 public class BlockService{
 
-    @Autowired
     private Web3Provider web3Provider;
 
     Map<String, TransactionObject> transactionDetailsMap = new HashMap<>();
+
+    public BlockService(Web3Provider web3Provider) {
+        this.web3Provider = web3Provider;
+    }
 
     private List<TransactionObject> getTransactionsByBlockNumber(BigInteger blockNumber){
         try {

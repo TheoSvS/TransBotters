@@ -8,7 +8,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.web3j.protocol.core.methods.response.EthGetTransactionReceipt;
 import org.web3j.protocol.core.methods.response.Transaction;
@@ -25,12 +24,15 @@ import java.util.concurrent.*;
 @Slf4j
 public class ScannerBot{
 
-    @Autowired
     private Web3Provider web3Provider;
 
     private Disposable disposableSubSuccessTxs;
 
     Map<String, TransactionDetailsDTO> transactionDetailsMap = Collections.synchronizedMap(new HashMap<>());
+
+    public ScannerBot(Web3Provider web3Provider) {
+        this.web3Provider = web3Provider;
+    }
 
     @PostConstruct
     public void  startScannerBot() {
