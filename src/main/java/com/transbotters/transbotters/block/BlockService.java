@@ -2,6 +2,7 @@ package com.transbotters.transbotters.block;
 
 import com.transbotters.transbotters.ETransactionType;
 import com.transbotters.transbotters.Utils;
+import com.transbotters.transbotters.token.TokenService;
 import com.transbotters.transbotters.web3.Web3Provider;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -24,10 +25,13 @@ public class BlockService{
 
     private Web3Provider web3Provider;
 
+    private TokenService tokenService;
+
     Map<String, TransactionObject> transactionDetailsMap = new HashMap<>();
 
-    public BlockService(Web3Provider web3Provider) {
+    public BlockService(Web3Provider web3Provider, TokenService tokenService) {
         this.web3Provider = web3Provider;
+        this.tokenService = tokenService;
     }
 
     private List<TransactionObject> getTransactionsByBlockNumber(BigInteger blockNumber){
@@ -78,7 +82,10 @@ public class BlockService{
                 Utils.isERC20TokenCreation(transactionObject.getInput())).forEach(transactionObject -> {
             transactionDetailsMap.put(transactionObject.getCreates(), transactionObject);
             log.info("Token creation discovered with transaction https://etherscan.io/tx/" + transactionObject.get().getHash());
-            log.info("https://etherscan.io/token/" + transactionObject.getCreates());
+            //todo not working always
+            //log.info("https://etherscan.io/token/" + transactionObject.getCreates());
+            String tokenAddress = tokenService.computeTokenAddress(transactionObject.getFrom(), transactionObject.getNonce());
+            log.info("https://etherscan.io/token/" + tokenAddress);
         });
     }
 
