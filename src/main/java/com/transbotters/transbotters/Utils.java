@@ -120,7 +120,6 @@ public final class Utils {
     }
 
     public static boolean findEmptyProperties(String... properties){
-        Arrays.stream(properties).anyMatch(property-> property==null || property.isBlank());
         return Arrays.stream(properties).anyMatch(property-> property==null || property.isBlank());
     }
 

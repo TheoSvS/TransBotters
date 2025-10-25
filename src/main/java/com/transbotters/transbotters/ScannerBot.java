@@ -28,7 +28,7 @@ public class ScannerBot{
 
     private Disposable disposableSubSuccessTxs;
 
-    Map<String, TransactionDetailsDTO> transactionDetailsMap = Collections.synchronizedMap(new HashMap<>());
+    Map<String, TransactionDetailsDTO> transactionDetailsMap = new ConcurrentHashMap<>();
 
     public ScannerBot(Web3Provider web3Provider) {
         this.web3Provider = web3Provider;
