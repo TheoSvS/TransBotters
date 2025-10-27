@@ -66,6 +66,15 @@ public final class Utils {
     static final String BALANCER_V2_EXIT_POOL ="0287a6e0" ; //balancer v2 exit pool  exitPool(bytes32 poolId, address sender, address recipient, ExitPoolRequest memory request) Removes liquidity from a Balancer pool.
 
 
+
+    /**Event log analysis**/
+    static final String UNISWAP_V2_MINT_EVENT ="4c209b5fc8ad50758f13e2e1088ba56a560dff690a1c6fef26394f4c03821c4f" ; //Uniswap V2 mint event
+    static final String SYNC_EVENT ="1c411e9a" ; //Sync event
+
+    /**ERC transfer topic**/
+    static final String ERC20_TRANSFER_TOPIC = "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+
+
     /**
      * Other not mapped yet
      */
